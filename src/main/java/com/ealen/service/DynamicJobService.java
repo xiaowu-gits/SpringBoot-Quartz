@@ -19,7 +19,7 @@ public class DynamicJobService {
     private JobEntityRepository repository;
 
     //通过Id获取Job
-    public JobEntity getJobEntityById(Integer id) {
+    public JobEntity getJobEntityById(Long id) {
         return repository.getById(id);
     }
 
@@ -39,6 +39,7 @@ public class DynamicJobService {
         map.put("vmParam", job.getVmParam());
         map.put("jarPath", job.getJarPath());
         map.put("status", job.getStatus());
+        map.put("className", job.getClassName());
         return map;
     }
 

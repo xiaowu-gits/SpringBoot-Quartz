@@ -1,0 +1,19 @@
+.layui-layer-dialog {
+    top: 300px !important;
+}
+
+.important_field {
+    float: right;
+    width: 10px;
+    color: red;
+    margin-top: 3px;
+    height: 10px;
+}
+
+.menuContent {
+    position: absolute ;
+}
+
+.layui-layer-loading1 {
+    top: -100px !important;
+}

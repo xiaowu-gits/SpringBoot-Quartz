@@ -1,0 +1,105 @@
+#tab_div td ,#tab_div th,#tab_div .layui-table-page,#tab_div .layui-table-box,#tab_div tr{
+    border-color: #2a7eae !important;
+    border: 1px solid;
+    color: #000000;
+}
+#tab_div th{
+    background: #3493c9;
+    color: #FFFFFF;
+}
+.btn-group{
+    width: 170px !important;
+    height: 20px !important;
+    border-radius: 0 !important;
+}
+.multiselect.dropdown-toggle.btn.btn-default{
+    border-radius: 0 !important;
+}
+.multiselect-selected-text{
+    font-family: 'Arial Normal', 'Arial';
+    font-weight: 400;
+    font-style: normal;
+    font-size: 14px;
+    color: #333333;
+    line-height: normal;
+}
+.multiselect.dropdown-toggle.btn.btn-default{
+    width: 174px;
+    height: 24px;
+    padding: 3px 5px;
+    float: left;
+    background: rgb(255, 255, 255);
+}
+.multiselect-selected-text{
+    font-family: inherit;
+    font-size: 14px;
+    font: inherit;
+    color: inherit;
+    float: left;
+}
+.btn .caret {
+    margin-left: 0;
+    float: right;
+    margin-top: 6px;
+}
+
+.multiselect-container.dropdown-menu{
+    overflow: auto;
+    height: 200px;
+}
+.checkbox{
+    border: 0px;
+    height: 25px;
+    font-size: 14px;
+}
+
+.btn-group{
+
+
+    background: #ffffff;
+    height: 25px;
+    border-radius: 0;
+}
+.btn-group.dropup{
+    height: 30px;
+    width: 50px;
+
+}
+.btn.btn-default.dropdown-toggle{
+    width: 100%
+}
+
+.dropdown-menu>.active>a, .dropdown-menu>.active>a:hover, .dropdown-menu>.active>a:focus {
+    color: #000000;
+    text-decoration: none;
+    outline: 0;
+    background-color: #ffffff;
+}
+.dropdown-menu{
+    padding: 0px;
+}
+.dropdown-menu>li>a{
+    padding: 3px;
+}
+.multiselect-container>li>a>label{
+    padding-left: 35px;
+}
+body{
+    background: #FFFFFF !important;
+
+}
+textarea{
+    resize: none;
+}
+.layui-table-tips-c::before {
+    position: relative;
+    right: 1px !important;
+    top: -3px !important;
+}
+.layui-btn.layui-btn-sm,.layui-btn.layui-btn-xs{
+    font-size: 14px !important;
+}
+.layui-edge.layui-table-sort-asc,.layui-edge.layui-table-sort-desc{
+    border-top-color: #ffffff !important;
+    border-bottom-color: #ffffff !important;
+}

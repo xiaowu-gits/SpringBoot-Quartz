@@ -72,6 +72,7 @@ public class ConfigureQuartz {
         @Override
         protected Object createJobInstance(final TriggerFiredBundle bundle) throws Exception {
             final Object job = super.createJobInstance(bundle);
+            //一般情况下，quartz的job中使用autowired注解注入的对象为空，这时候我们就要使用spring-quartz提供的AdaptableJobFactory类。
             beanFactory.autowireBean(job);
             return job;
         }

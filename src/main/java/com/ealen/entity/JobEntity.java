@@ -1,10 +1,13 @@
 package com.ealen.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.Date;
 
 /**
  * Created by EalenXie on 2018/6/4 14:09
@@ -17,7 +20,7 @@ import java.io.Serializable;
 public class JobEntity implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
     private String name;          //job名称
     private String jobGroup;      //job组名
     private String cron;          //执行的cron
@@ -26,4 +29,8 @@ public class JobEntity implements Serializable {
     private String vmParam;       //vm参数
     private String jarPath;       //job的jar路径
     private String status;        //job的执行状态,这里我设置为OPEN/CLOSE且只有该值为OPEN才会执行该Job
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date startTime;
+    private String className;
 }

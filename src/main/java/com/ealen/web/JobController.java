@@ -3,34 +3,45 @@ package com.ealen.web;
 import com.ealen.dao.JobEntityRepository;
 import com.ealen.entity.JobEntity;
 import com.ealen.service.DynamicJobService;
+import com.ealen.service.JobService;
+import com.ealen.util.QuartzUtils;
 import com.ealen.web.dto.ModifyCronDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
+import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
-import java.util.Objects;
-import java.util.Set;
+import java.math.BigInteger;
+import java.util.*;
 
 /**
  * Created by EalenXie on 2018/6/4 16:12
  */
-@RestController
+@Controller
 @Slf4j
+@RequestMapping("/index")
 public class JobController {
 
     @Autowired
     private SchedulerFactoryBean schedulerFactoryBean;
+
     @Autowired
-    private DynamicJobService jobService;
+    private DynamicJobService dynamicJobService;
 
     @Autowired
     private JobEntityRepository repository;
+
+    @Autowired
+    private JobService jobService;
+
+    @Autowired
+    private QuartzUtils quartzUtils;
 
     //初始化启动所有的Job
     @PostConstruct
@@ -43,22 +54,141 @@ public class JobController {
         }
     }
 
+    @RequestMapping(value="/quartz")
+    public String quartzIndex(){
+        return "index/index";
+    }
+
+    @RequestMapping(value = "/getAllTriggers", method = RequestMethod.POST)
+    @ResponseBody
+    public Object getAllUser(@RequestParam String name, @RequestParam String group)
+    {
+        List<Map<String,Object>> resultObjList =new ArrayList<Map<String,Object>>();
+        List resultList =new ArrayList();
+        try {
+            resultList = jobService.findTriggerByParams(name, group);
+
+            //转格式
+            for(Object obj:resultList){
+                Object[] dataObj = (Object[])obj;
+                Map<String,Object> data = new HashMap<String,Object>();
+                data.put("name", dataObj[1]);
+                data.put("jobGroup", dataObj[2]);
+                data.put("nextime", quartzUtils.convertBigIntegerToDateStr((BigInteger)dataObj[6]));
+                data.put("preTime", quartzUtils.convertBigIntegerToDateStr((BigInteger)dataObj[7]));
+                data.put("status",  quartzUtils.convertState((String)dataObj[9]));
+                resultObjList.add(data);
+            }
+        } catch (Exception e) {
+            log.error("查询失败:", e);
+        }
+        return resultObjList;
+    }
+
+    /**
+     * 添加任务
+     * @param jobEntity
+     * @return
+     */
+    @PostMapping(value="/addTrigger")
+    @ResponseBody
+    public Map<String,Object> addTrigger(@RequestBody JobEntity jobEntity){
+        return jobService.schedule(jobEntity);
+    }
+
+    /**
+     * 修改任务
+     * @param jobEntity
+     * @return
+     */
+    @PostMapping(value="/updateTrigger")
+    @ResponseBody
+    public Map<String,Object> updateTrigger(@RequestBody JobEntity jobEntity){
+        return jobService.updateTrigger(jobEntity);
+    }
+
+    /**
+     * 删除任务
+     * @param triggers
+     * @return
+     */
+    @PostMapping(value="/deleteTrigger")
+    @ResponseBody
+    public Map<String,Object> deleteTrigger(@RequestBody List<Map<String, Object>> triggers){
+        return jobService.deleteTrigger(triggers);
+    }
+
+    /**
+     * 暂停任务
+     * @param triggers
+     * @return
+     */
+    @PostMapping(value="/pauseTrigger")
+    @ResponseBody
+    public Map<String,Object> pauseTrigger(@RequestBody List<Map<String, Object>> triggers){
+        return jobService.pauseTrigger(triggers);
+    }
+
+    /**
+     * 重置任务
+     * @param triggers
+     * @return
+     */
+    @PostMapping(value="/resumeTrigger")
+    @ResponseBody
+    public Map<String,Object> resumeTrigger(@RequestBody List<Map<String, Object>> triggers){
+        return jobService.resumeTrigger(triggers);
+    }
+
+    /**
+     * 立即执行任务
+     * @param jobEntity
+     * @return
+     */
+    @PostMapping(value="/executeTrigger")
+    @ResponseBody
+    public Map<String,Object> executeTrigger(@RequestBody JobEntity jobEntity){
+        return jobService.executeTrigger(jobEntity);
+    }
+
+    /**
+     * 根据任务名称和任务分组查找JobEntity
+     * @param name
+     * @param group
+     * @return
+     */
+    @RequestMapping(value = "/getJobEntity", method = RequestMethod.POST)
+    @ResponseBody
+    public Map<String,Object> getJobEntity(@RequestParam String name, @RequestParam String group){
+        Map<String,Object> outMap = new HashMap<>();
+        JobEntity jobEntity = jobService.findByNameAndGroup(name, group);
+        if (jobEntity == null) {
+            outMap.put("code", 0);
+            outMap.put("msg", "未查到相关任务");
+        } else {
+            outMap.put("code", 1);
+            outMap.put("msg", "");
+            outMap.put("data", jobEntity);
+        }
+        return outMap;
+    }
+
     //根据ID重启某个Job
     @RequestMapping("/refresh/{id}")
-    public String refresh(@PathVariable @NotNull Integer id) throws SchedulerException {
+    public String refresh(@PathVariable @NotNull Long id) throws SchedulerException {
         String result;
-        JobEntity entity = jobService.getJobEntityById(id);
+        JobEntity entity = dynamicJobService.getJobEntityById(id);
         if (Objects.isNull(entity)) return "error: id is not exist ";
         synchronized (log) {
-            JobKey jobKey = jobService.getJobKey(entity);
+            JobKey jobKey = dynamicJobService.getJobKey(entity);
             Scheduler scheduler = schedulerFactoryBean.getScheduler();
             scheduler.pauseJob(jobKey);
             scheduler.unscheduleJob(TriggerKey.triggerKey(jobKey.getName(), jobKey.getGroup()));
             scheduler.deleteJob(jobKey);
-            JobDataMap map = jobService.getJobDataMap(entity);
-            JobDetail jobDetail = jobService.getJobDetail(jobKey, entity.getDescription(), map);
+            JobDataMap map = dynamicJobService.getJobDataMap(entity);
+            JobDetail jobDetail = dynamicJobService.getJobDetail(jobKey, entity.getDescription(), map);
             if (entity.getStatus().equals("OPEN")) {
-                scheduler.scheduleJob(jobDetail, jobService.getTrigger(entity));
+                scheduler.scheduleJob(jobDetail, dynamicJobService.getTrigger(entity));
                 result = "Refresh Job : " + entity.getName() + "\t jarPath: " + entity.getJarPath() + " success !";
             } else {
                 result = "Refresh Job : " + entity.getName() + "\t jarPath: " + entity.getJarPath() + " failed ! , " +
@@ -94,14 +224,16 @@ public class JobController {
                 scheduler.unscheduleJob(TriggerKey.triggerKey(jobKey.getName(), jobKey.getGroup()));
                 scheduler.deleteJob(jobKey);
             }
-            for (JobEntity job : jobService.loadJobs()) {                               //从数据库中注册的所有JOB
+            for (JobEntity job : dynamicJobService.loadJobs()) {                               //从数据库中注册的所有JOB
                 log.info("Job register name : {} , group : {} , cron : {}", job.getName(), job.getJobGroup(), job.getCron());
-                JobDataMap map = jobService.getJobDataMap(job);
-                JobKey jobKey = jobService.getJobKey(job);
-                JobDetail jobDetail = jobService.getJobDetail(jobKey, job.getDescription(), map);
-                if (job.getStatus().equals("OPEN")) scheduler.scheduleJob(jobDetail, jobService.getTrigger(job));
-                else
-                    log.info("Job jump name : {} , Because {} status is {}", job.getName(), job.getName(), job.getStatus());
+                JobDataMap map = dynamicJobService.getJobDataMap(job);
+                JobKey jobKey = dynamicJobService.getJobKey(job);
+                JobDetail jobDetail = dynamicJobService.getJobDetail(jobKey, job.getDescription(), map);
+//                if (job.getStatus() != null && job.getStatus().equals("OPEN")) {
+                    scheduler.scheduleJob(jobDetail, dynamicJobService.getTrigger(job));
+//                } else {
+//                    log.info("Job jump name : {} , Because {} status is {}", job.getName(), job.getName(), job.getStatus());
+//                }
             }
         }
     }
@@ -111,10 +243,10 @@ public class JobController {
     public String modifyJob(@RequestBody @Validated ModifyCronDTO dto) {
         if (!CronExpression.isValidExpression(dto.getCron())) return "cron is invalid !";
         synchronized (log) {
-            JobEntity job = jobService.getJobEntityById(dto.getId());
+            JobEntity job = dynamicJobService.getJobEntityById(dto.getId());
             if (job.getStatus().equals("OPEN")) {
                 try {
-                    JobKey jobKey = jobService.getJobKey(job);
+                    JobKey jobKey = dynamicJobService.getJobKey(job);
                     TriggerKey triggerKey = new TriggerKey(jobKey.getName(), jobKey.getGroup());
                     Scheduler scheduler = schedulerFactoryBean.getScheduler();
                     CronTrigger cronTrigger = (CronTrigger) scheduler.getTrigger(triggerKey);
@@ -125,7 +257,7 @@ public class JobController {
                         CronTrigger trigger = TriggerBuilder.newTrigger()
                                 .withIdentity(jobKey.getName(), jobKey.getGroup())
                                 .withSchedule(cronScheduleBuilder)
-                                .usingJobData(jobService.getJobDataMap(job))
+                                .usingJobData(dynamicJobService.getJobDataMap(job))
                                 .build();
                         scheduler.rescheduleJob(triggerKey, trigger);
                         repository.save(job);
